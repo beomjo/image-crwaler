@@ -1,6 +1,5 @@
-package k.bs.imagecrwaler.paging
+package k.bs.imagecrwaler.paging.base
 
-import android.annotation.SuppressLint
 import android.view.View
 import androidx.paging.PagedListAdapter
 import androidx.recyclerview.widget.DiffUtil
@@ -12,7 +11,6 @@ const val VIEW_TYPE_LOADING = 1
 abstract class BaseDiffAdapter<T, ViewHolder : RecyclerView.ViewHolder>(diffCallback : DiffUtil.ItemCallback<T> = defaultCallback.defaultDiffCallback()) :
         PagedListAdapter<T, ViewHolder>(diffCallback) {
 
-    // when the adapter is not loading, we want to update it in order to remove the last entry
     var loading: Boolean = true
         set(value) {
             field = value
@@ -38,7 +36,6 @@ abstract class BaseDiffAdapter<T, ViewHolder : RecyclerView.ViewHolder>(diffCall
                     return oldItem == newItem
                 }
 
-                @SuppressLint("DiffUtilEquals")
                 override fun areContentsTheSame(oldItem: T, newItem: T): Boolean {
                     return oldItem == newItem
                 }

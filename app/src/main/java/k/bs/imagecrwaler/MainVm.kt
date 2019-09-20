@@ -1,56 +1,60 @@
 package k.bs.imagecrwaler
 
-import android.util.Log
-import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.rxkotlin.addTo
-import io.reactivex.schedulers.Schedulers
-import k.bs.imagecrwaler.model.ModelImage
-import org.jsoup.Jsoup
+import k.bs.imagecrwaler.paging.ImageDataSourceFactory
+import k.bs.imagecrwaler.paging.base.BasePaginationViewModel
 
-class MainVm {
-    private val disposable = CompositeDisposable()
+class MainVm(val contract: Contract) :
+    BasePaginationViewModel<ImageDataSourceFactory, ImageItemVm>() {
+    interface Contract {
+        fun toast(content: String)
+    }
+
+    override fun getPageSize(): Int = 60
+
     val adapter = ImageAdapter(R.layout.item_image, BR.vm)
 
     init {
+        dataSourceFactory = ImageDataSourceFactory(getListener())
+        submitItems()
+        registerObserving()
+    }
 
-        scrap()
-            .filter(String::isNotEmpty)
-            .map { listOf(ImageItemVm(ModelImage(imageUrl = it))) }
-            .reduce { t1: List<ImageItemVm>, t2: List<ImageItemVm> -> t1 + t2 }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ items ->
-                Log.d("bsjo","bsjo ${items}")
-                adapter.insertAll(items)
+
+    private fun submitItems() {
+        getItems()
+            ?.subscribe(
+                { items -> adapter.submitList(items) },
+                { /** Error handle*/ }
+            )
+            .let { addDisposable(it!!) }
+    }
+
+    private fun registerObserving() {
+        errorToastSubject.subscribe(
+            { contract.toast("에러발생") },
+            { /** Error handle*/ })
+            .let(this::addDisposable)
+
+        clearDataSubject.subscribe(
+            {
+                clearDataSource()
+                submitItems()
+                adapter.notifyDataSetChanged()
             }, {
-                Log.e("bsjo", "bsjo error \n${it.message}")
-            })
-            .addTo(disposable)
+                /** Error handle*/
+            }).let(this::addDisposable)
 
+
+        recyclerViewLoadingSubject
+            .subscribe(
+                { show -> show?.let { adapter.loading = show.peek() } },
+                {}
+            )
+            .let(this::addDisposable)
     }
 
-    private fun scrap(): Observable<String> {
-        return Observable.create<String> { emitter ->
-            val doc = Jsoup
-                .connect(
-                    " https://www.gettyimages.com/photos/collaboration?" +
-                            "mediatype=photography&page=1&phrase=collaboration&sort=mostpopular"
-                )
-                .userAgent("Chrome")
-                .get()
-
-            val elements = doc.select(".search-content__gallery-assets").select("img")
-
-            for (e in elements) {
-                emitter.onNext(e.attr("src"))
-            }
-            emitter.onComplete()
-        }
-    }
 
     fun clearDisposable() {
-        disposable.clear()
+        cleared()
     }
 }
