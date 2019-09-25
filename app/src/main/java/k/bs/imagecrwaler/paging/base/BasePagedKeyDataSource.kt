@@ -4,12 +4,11 @@ import androidx.paging.PageKeyedDataSource
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 
-abstract class BaseItemKeyDataSource<T> : PageKeyedDataSource<Int, T>() {
+abstract class BasePagedKeyDataSource<T> : PageKeyedDataSource<Int, T>() {
     lateinit var onDataSourceLoading: OnDataSourceLoading
     protected var compositeDisposable = CompositeDisposable()
 
-    abstract val initPreviousPageKey: Int
-    abstract var key: Int
+    abstract var startPageKey: Int
 
     protected abstract fun loadInitialData(
         params: LoadInitialParams<Int>,
@@ -40,10 +39,9 @@ abstract class BaseItemKeyDataSource<T> : PageKeyedDataSource<Int, T>() {
 
     protected fun submitInitialData(
         items: List<T>,
-        params: LoadInitialParams<Int>,
         callback: LoadInitialCallback<Int, T>
     ) {
-        callback.onResult(items, initPreviousPageKey, params.requestedLoadSize)
+        callback.onResult(items, startPageKey, startPageKey + 1)
         if (items.isNotEmpty()) {
             onDataSourceLoading.onFirstFetchEndWithData()
         } else {
@@ -57,17 +55,15 @@ abstract class BaseItemKeyDataSource<T> : PageKeyedDataSource<Int, T>() {
         callback: LoadCallback<Int, T>
     ) {
         /** adjacentPageKey: 후속 페이지로드 (이전 페이지 입력 / 다음 페이지 입력 ) 또는 현재로드 방향으로로드 할 페이지가 더 이상없는 경우 키입니다 */
-        val adjacentPageKey = if (items.isEmpty()) null else params.key + items.size
+        val adjacentPageKey = if (items.isEmpty()) null else params.key + 1
         callback.onResult(items, adjacentPageKey)
         onDataSourceLoading.onDataLoadingEnd()
     }
-
 
     protected fun submitInitialError(error: Throwable) {
         onDataSourceLoading.onError()
         error.printStackTrace()
     }
-
 
     protected fun submitError(error: Throwable) {
         onDataSourceLoading.onError()
@@ -82,5 +78,4 @@ abstract class BaseItemKeyDataSource<T> : PageKeyedDataSource<Int, T>() {
     fun addDisposable(disposable: Disposable) {
         compositeDisposable.add(disposable)
     }
-
 }

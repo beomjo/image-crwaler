@@ -3,7 +3,7 @@ package k.bs.imagecrwaler
 import k.bs.imagecrwaler.paging.ImageDataSourceFactory
 import k.bs.imagecrwaler.paging.base.BasePaginationViewModel
 
-class MainVm(val contract: Contract) :
+class MainVm(private val contract: Contract) :
     BasePaginationViewModel<ImageDataSourceFactory, ImageItemVm>() {
     interface Contract {
         fun toast(content: String)
@@ -18,7 +18,6 @@ class MainVm(val contract: Contract) :
         submitItems()
         registerObserving()
     }
-
 
     private fun submitItems() {
         getItems()
@@ -44,7 +43,6 @@ class MainVm(val contract: Contract) :
                 /** Error handle*/
             }).let(this::addDisposable)
 
-
         recyclerViewLoadingSubject
             .subscribe(
                 { show -> show?.let { adapter.loading = show.peek() } },
@@ -52,7 +50,6 @@ class MainVm(val contract: Contract) :
             )
             .let(this::addDisposable)
     }
-
 
     fun clearDisposable() {
         cleared()

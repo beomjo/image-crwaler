@@ -8,26 +8,23 @@ import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 import k.bs.imagecrwaler.ImageItemVm
 import k.bs.imagecrwaler.model.ModelImage
-import k.bs.imagecrwaler.paging.base.BaseItemKeyDataSource
+import k.bs.imagecrwaler.paging.base.BasePagedKeyDataSource
 import org.jsoup.Jsoup
 
-class ImageDataSource : BaseItemKeyDataSource<ImageItemVm>() {
+class ImageDataSource : BasePagedKeyDataSource<ImageItemVm>() {
     private val TAG = this::class.java.canonicalName
-    override val initPreviousPageKey: Int = 1
-    override var key: Int = 1
+    override var startPageKey: Int = 1
 
     override fun loadInitialData(
         params: LoadInitialParams<Int>,
         callback: LoadInitialCallback<Int, ImageItemVm>
     ) {
-        Log.d(TAG, "loadInitialData params.requestedLoadSize ${params.requestedLoadSize}")
-
-        scrap(key)
+        scrap(startPageKey)
             .urlMapDataModel()
             .subscribe({ items ->
-                submitInitialData(items, params, callback)
+                submitInitialData(items, callback)
             }, {
-                Log.e("bsjo", "bsjo error \n${it.message}")
+                Log.e(TAG, "error \n${it.message}")
             })
             .addTo(compositeDisposable)
     }
@@ -36,15 +33,12 @@ class ImageDataSource : BaseItemKeyDataSource<ImageItemVm>() {
         params: LoadParams<Int>,
         callback: LoadCallback<Int, ImageItemVm>
     ) {
-        Log.d(TAG, "loadAdditionalData params.key ${params.key}")
-        Log.d(TAG, "loadAdditionalData params.requestedLoadSize ${params.requestedLoadSize}")
-
-        scrap(++key)
+        scrap(params.key)
             .urlMapDataModel()
             .subscribe({ items ->
                 submitData(items, params, callback)
             }, {
-                Log.e("bsjo", "bsjo error \n${it.message}")
+                Log.e(TAG, "error \n${it.message}")
             })
             .addTo(compositeDisposable)
     }
@@ -53,7 +47,7 @@ class ImageDataSource : BaseItemKeyDataSource<ImageItemVm>() {
         return Observable.create<String> { emitter ->
             val doc = Jsoup
                 .connect(
-                    " https://www.gettyimages.com/photos/collaboration?" +
+                    "https://www.gettyimages.com/photos/collaboration?" +
                             "mediatype=photography&page=${page}&phrase=collaboration&sort=mostpopular"
                 )
                 .userAgent("Chrome")
